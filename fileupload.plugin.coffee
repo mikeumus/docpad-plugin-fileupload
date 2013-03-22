@@ -1,7 +1,7 @@
 # Export
 module.exports = (BasePlugin) ->
   # Prepare
-	fileupload = require('fileupload').createFileUpload('/Uploads')
+	fileupload = require('fileupload').createFileUpload('/Uploads') # .middlewear is called in the server.post as fileupload.middlewear 
   # Define
 	class fileuploadPlugin extends BasePlugin
 		# Name
