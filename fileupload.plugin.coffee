@@ -7,37 +7,6 @@ module.exports = (BasePlugin) ->
 		# Name
 		name: 'fileupload'
 
-		# Create Server and Express Application
-		###
-		express = require("express")
-		http = require("http")
-		app = express()
-
-		# Add our Application Stuff
-		app.use express.bodyParser()
-		app.use express.methodOverride()
-		app.use app.router
-
-		# Add DocPad to our Application
-		docpadInstanceConfiguration =
-		  
-		  # Give it our express application and http server
-		  serverExpress: app
-		  serverHttp: server
-		  
-		  # Tell it not to load the standard middlewares (as we handled that above)
-		  middlewareStandard: false
-
-		docpadInstance = require("docpad").createInstance(docpadInstanceConfiguration, (err) ->
-		  return console.log(err.stack)  if err
-		  
-		  # Tell DocPad to perform a generation, extend our server with its routes, and watch for changes
-		  docpad.action "generate server watch", (err) ->
-		    console.log err.stack  if err
-
-		)
-		###
-
 		# Config
 		config:
 			collectionName: 'Uploads'
@@ -91,39 +60,49 @@ module.exports = (BasePlugin) ->
 
 		# Server Extend
 		# Add our handling for posting the comment
-		serverAfter: (opts) ->
+		serverExtend: (opts) ->
 			# Prepare
 			{server} = opts
 			{docpad,config} = @
 			database = docpad.getDatabase()
 
+			console.log "here"
 			# Publish Handing
-			server.post config.postUrl, fileupload, (req,res) ->
+			server.post config.postUrl, fileupload.middleware, (req,res,next) ->
+				console.log "there"
 				# Prepare
 				date = new Date()
 				dateTime = date.getTime()
 				dateString = date.toString()
-				filename = req.body.fileInput
+				console.log req.body.fileInput 
+				filename = req.body.fileInput[0].basename
 				fileRelativePath = "#{config.relativePath}/#{filename}"
 				fileFullPath = docpad.config.documentsPaths[0]+"/#{fileRelativePath}"
+				console.log req.files
+				attributes =
+						data: "wed"
+						date: date
+						filename: filename
+						relativePath: fileRelativePath
+						fullPath: fileFullPath
 
-				# file is an object with information about the uploaded file
-				# See below for the contents of this object
 				fileupload.put "#{fileFullPath}", (error, file) ->
 				  if error
 				    console.log error 
-				            
-				  ensureFile = docpad.ensureDocument("#{fileFullPath}") 
-				  database.add(ensureFile)
+				  console.log "done"
+				return next()
 
-						###
-						# Listen for regeneration
-						docpad.once 'generateAfter', (err) ->
-							# Check
-							return next(err)  if err
-						
-							# Update browser
-							res.redirect('back')
+
+
+				#  if error
+				###    console.log error 
+								  Listen for regeneration
+				    docpad.once 'generateAfter', (err) ->
+					  if err
+						res.redirect('back')
+					  return next(err)  
+
+            
 						###
 
 			# Done
