@@ -68,9 +68,10 @@ module.exports = (BasePlugin) ->
 
 			console.log "here"
 			# Publish Handing
-			server.post config.postUrl, fileupload.middleware, (req,res,next) ->
+			server.post config.postUrl, fileupload.middleware, (req,res) ->
 				console.log "there"
 				# Prepare
+				###
 				date = new Date()
 				dateTime = date.getTime()
 				dateString = date.toString()
@@ -79,20 +80,7 @@ module.exports = (BasePlugin) ->
 				fileRelativePath = "#{config.relativePath}/#{filename}"
 				fileFullPath = docpad.config.documentsPaths[0]+"/#{fileRelativePath}"
 				console.log req.files
-				attributes =
-						data: "wed"
-						date: date
-						filename: filename
-						relativePath: fileRelativePath
-						fullPath: fileFullPath
-
-				fileupload.put "#{fileFullPath}", (error, file) ->
-				  if error
-				    console.log error 
-				  console.log "done"
-				return next()
-
-
+				###
 
 				#  if error
 				###    console.log error 
