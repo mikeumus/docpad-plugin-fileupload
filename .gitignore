@@ -1,3 +1,7 @@
 node_modules/
 out/
+<<<<<<< HEAD
 Procfile
+=======
+Procfile
+>>>>>>> 012066e1b205cc45d7af99d06148382b440bc480
