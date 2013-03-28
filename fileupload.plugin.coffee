@@ -1,52 +1,27 @@
+fs = require('fs')
+
 # Export
 module.exports = (BasePlugin) ->
+  # Prepare
+  	# uploadDir = @site?.uploadDir
+	fs.chmodSync('./', 0o0777)
+	fileupload = require('fileupload').createFileUpload('/uploads') # .middlewear is called in the server.post as fileupload.middlewear 
   # Define
 	class fileuploadPlugin extends BasePlugin
 		# Name
 		name: 'fileupload'
 
-		# Create Server and Express Application
-		###
-		express = require("express")
-		http = require("http")
-		app = express()
-
-		# Add our Application Stuff
-		app.use express.bodyParser()
-		app.use express.methodOverride()
-		app.use app.router
-
-		# Add DocPad to our Application
-		docpadInstanceConfiguration =
-		  
-		  # Give it our express application and http server
-		  serverExpress: app
-		  serverHttp: server
-		  
-		  # Tell it not to load the standard middlewares (as we handled that above)
-		  middlewareStandard: false
-
-		docpadInstance = require("docpad").createInstance(docpadInstanceConfiguration, (err) ->
-		  return console.log(err.stack)  if err
-		  
-		  # Tell DocPad to perform a generation, extend our server with its routes, and watch for changes
-		  docpad.action "generate server watch", (err) ->
-		    console.log err.stack  if err
-
-		)
-		###
-
 		# Config
 		config:
-			collectionName: 'files'
-			relativePath: 'Uploads'
-			postUrl: '/fileupload'
+			collectionName: 'uploads'
+			relativePath: 'uploads'
+			postUrl: '/uploads'
 			blockUpload: """
 				<section class="fileupload">
-					<form action="#{postUrl}" method="post" enctype="multipart/form-data">
+					<form action="/uploads" method="post" enctype="multipart/form-data">
 						<label for="file">Filename:</label>
-						<input type="file" name="file" id="file" value="Upload"><br>
-						<input type="submit" name="submit" value="Submit">
+						<input type="file" name="fileInput" id="fileInput" value="Upload"><br>
+						<input type="submit" name="submit" value="Upload">
 						</form>
 				</section>
 				""".replace(/^\s+|\n\s*|\s+$/g,'')
@@ -62,9 +37,11 @@ module.exports = (BasePlugin) ->
 				@referencesOthers()
 				return config.blockUpload
 
-			# getComments
+			# getUploads
+			###
 			templateData.getUploadedFiles = ->
 				return docpad.getCollection(config.collectionName).findAll(for:@document.id)
+			###
 
 			# Chain
 			@
@@ -72,19 +49,21 @@ module.exports = (BasePlugin) ->
 
 		# Extend Collections
 		# Create our live collection for our comments
+		###
 		extendCollections: ->
 			# Prepare
 			{docpad,config} = @
 			database = docpad.getDatabase()
 
 			# Create the collection
-			uploadedFiles = database.findAllLive({relativePath: $startsWith: config.relativePath},[date:-1])
+			uploads = database.findAllLive({relativePath: $startsWith: config.relativePath},[date:-1])
 
 			# Set the collection
-			docpad.setCollection(config.collectionName, uploadedFiles)
+			docpad.setCollection(config.collectionName, uploads)
 
 			# Chain
 			@
+		###
 
 
 		# Server Extend
@@ -93,41 +72,36 @@ module.exports = (BasePlugin) ->
 			# Prepare
 			{server} = opts
 			{docpad,config} = @
-			database = docpad.getDatabase()
+			# database = docpad.getDatabase()
 
+			console.log "here"
 			# Publish Handing
-			server.post config.postUrl, (req,res,next) ->
+			server.post config.postUrl, fileupload.middleware, (req,res) ->
+				console.log "there"
+				console.log req.files
 				# Prepare
+				###
 				date = new Date()
 				dateTime = date.getTime()
 				dateString = date.toString()
-				filename = req.body.file
+				console.log req.body.fileInput 
+				filename = req.body.fileInput[0].basename
 				fileRelativePath = "#{config.relativePath}/#{filename}"
 				fileFullPath = docpad.config.documentsPaths[0]+"/#{fileRelativePath}"
+				console.log req.files
+				###
 
-				fileUploadPath = require('fileupload').createFileUpload('/Uploads')
+				#  if error
+				###    console.log error 
+								  Listen for regeneration
+				    docpad.once 'generateAfter', (err) ->
+					  if err
+						res.redirect('back')
+					  return next(err)  
 
-				# file is an object with information about the uploaded file
-				# See below for the contents of this object
-				fileupload.put "#{fileFullPath}", (error, file) ->
-				  if error
-				    console.log error 
-				            
-				  ensureFile = docpad.ensureDocument("#{fileFullPath}") 
-				  database.add(ensureFile)
-
-
-						###
-						# Listen for regeneration
-						docpad.once 'generateAfter', (err) ->
-							# Check
-							return next(err)  if err
-						
-							# Update browser
-							res.redirect('back')
+            
 						###
 
 			# Done
 			@
-
 
